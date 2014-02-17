@@ -119,8 +119,9 @@
 		        //$('#popoverAnchor').css({top: startY, left: mouseX, position: 'absolute', 'z-index':5, height: h, width:'2px', border:'1px solid red'});
 		        $('#userSelection').popover({
 		        	html: true,
+		        	title: 'Options',
 		        	placement:'right', 
-		        	content:'<button id="copytextbutton" class="btn btn-primary btn-tiny">copy as text</button>'
+		        	content:'<button id="copytextbutton" class="btn btn-default btn-small">copy as text</button>'
 		        });
 		        $('#userSelection').popover('show');	
 
@@ -144,7 +145,7 @@
 		        isDrawing = true;
 		        startX = mouseX;
 		        startY = mouseY;
-		        canvas.style.cursor = "crosshair";
+		        canvas.style.cursor = "text";
 		    }
 		}
 		$("#mycanvas").mousedown(function (e) {

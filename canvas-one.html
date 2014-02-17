@@ -135,11 +135,9 @@
 					});
 
 					client.on('complete', function(client, args){
-						console.log("copied to clipboard " + JSON.stringify(args));
+						console.log("copied to clipboard");
 						$('#userSelection').css({top:0, left:0, height: 0, width: 0, position:'absolute', border: 'none'});
 						$('#userSelection').popover('hide');
-						$('#copyText').text('[ ' + textToCopy.substring(0,50) + '... ]');
-						$('#successAlert').show();
 					});
 				});
 		    } else {

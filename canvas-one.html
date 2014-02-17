@@ -10,6 +10,10 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/ZeroClipboard.js"></script>
+    <script>
+   		ZeroClipboard.config({debug: false, moviePath:"swf/ZeroClipboard.swf"});
+    </script>
+
     <style>
     	#userSelection {
 			position: absolute;
@@ -27,6 +31,22 @@
  </head>
   <body>
 
+	<div class="modal" tabindex="-1" role="dialog" id="fallbackModal">
+	  <div class="modal-dialog modal-sm">
+	    <div class="modal-content">
+			<div class="modal-header">
+        		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        		<h4 class="modal-title" id="myModalLabel">Press Ctrl-C to copy the selected text your clipboard</h4>
+      		</div>
+      		<div class="modal-body">
+	      	<textarea id="fallbackTextToCopy" cols="60" rows="3" disabled></textarea>      			
+      		</div>
+	      	<div class="modal-footer">
+        		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      		</div>
+	    </div>
+	  </div>
+	</div>
   	<div id="canvas-wrap">
 		<canvas id="mycanvas" width="1700" height="2200"></canvas>
 		<div id="userSelection"></div>
@@ -35,6 +55,31 @@
 
 
  	$(document).ready(function(){
+ 		// the text to copy to the clipboard
+		var textToCopy = "";
+
+		// create instance of zeroclipboard client
+ 		var clipboardClient = new ZeroClipboard();
+ 		var clipboardClientLoaded = false;
+ 		// if it loads successfully then add event handlers
+ 		clipboardClient.on('load', function(clipboardClient){
+ 			clipboardClientLoaded = true;
+
+			clipboardClient.on('datarequested', function(clipboardClient, args){
+				console.log("copy to clipboard request received");
+				console.log("text to copy = " + textToCopy);
+				clipboardClient.setText(textToCopy);
+			});
+
+			clipboardClient.on('complete', function(clipboardClient, args){
+				console.log("copied to clipboard");
+				$('#userSelection').css({top:0, left:0, height: 0, width: 0, position:'absolute', border: 'none'});
+				$('#userSelection').popover('hide');
+			});
+ 		});
+ 		clipboardClient.on('wrongflash noflash', function(){
+ 			console.log("Cannot use ZeroClipboard no flash or wrong flash");
+ 		});
 
 		function getParameterByName(name) {
 		    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
@@ -109,38 +154,39 @@
 
 		        $('#userSelection').css({top:startY, left:startX, height: h , width: w, position:'absolute', border: '2px solid #FDB514', background: 'rgba(253,181,20,0.5)'});
 
-		        var textToCopy = "";
 				var url = 'http://localhost:3000/resources/52fdf9c633480c593b000002/pages/1/text/box?x0='+startX+'&y0='+startY+'&x1='+endX+'&y1='+endY+'&access_token=' + getParameterByName('access_token');
 				$.getJSON( url, function(data){
 					textToCopy = data.text;
 				});
 
-
-		        //$('#popoverAnchor').css({top: startY, left: mouseX, position: 'absolute', 'z-index':5, height: h, width:'2px', border:'1px solid red'});
 		        $('#userSelection').popover({
 		        	html: true,
 		        	title: 'Options',
 		        	placement:'right', 
 		        	content:'<button id="copytextbutton" class="btn btn-default btn-small">copy as text</button>'
 		        });
-		        $('#userSelection').popover('show');	
 
-				var client = new ZeroClipboard($('#copytextbutton'));
+		        var forceFallback = getParameterByName('forceFB');
 
-				client.on("load", function(client){
-					console.log("clipboard loaded");
-					client.on('datarequested', function(client, args){
-						console.log("copy to clipboard request received");
-						console.log("text to copy = " + textToCopy);
-						client.setText(textToCopy);
-					});
-
-					client.on('complete', function(client, args){
-						console.log("copied to clipboard");
+		        $('#userSelection').popover('show');
+		        console.log('clipboard client loaded is ' + clipboardClientLoaded);
+		        if(clipboardClientLoaded && !forceFallback){
+		        	clipboardClient.clip($('#copytextbutton'));			        	
+		        } else {
+		        	console.log("falling back");
+		        	$('#copytextbutton').click(function(){
+		        		console.log("clicked");
 						$('#userSelection').css({top:0, left:0, height: 0, width: 0, position:'absolute', border: 'none'});
 						$('#userSelection').popover('hide');
-					});
-				});
+
+		        		$('#fallbackTextToCopy').val(textToCopy);
+		        		$('#fallbackModal').modal();
+		        		$('#fallbackTextToCopy').focus();
+		        		$('#fallbackTextToCopy').select();
+
+
+		        	});
+		        }
 		    } else {
 		        isDrawing = true;
 		        startX = mouseX;

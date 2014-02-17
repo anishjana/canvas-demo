@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/ZeroClipboard.js"></script>
+    <style>
+    	#userSelection {
+			position: absolute;
+			top:0px;
+			left:0px;
+    	}
+
+    	#successAlert {
+    		width: 900px;
+    	}
+
+    	#canvas-wrap { position:relative; width:1700px; height:2200px }
+		#canvas-wrap canvas { position:absolute; top:0; left:0; z-index:0 }
+    </style>
+ </head>
+  <body>
+
+  	<div id="canvas-wrap">
+		<canvas id="mycanvas" width="1700" height="2200"></canvas>
+		<div id="userSelection"></div>
+	</div>
+ 	<script>
+
+
+ 	$(document).ready(function(){
+
+		function getParameterByName(name) {
+		    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+		    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+		        results = regex.exec(location.search);
+		    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+		}
+
+ 		var canvas = document.getElementById('mycanvas');
+ 		var context = canvas.getContext('2d');
+
+ 		var imageObj = new Image();
+ 		imageObj.onload = function(){
+ 			context.drawImage(imageObj, 0, 0);
+ 		};
+ 		imageObj.src = "1.png";
+
+		var isDrawing = false;
+		var startX;
+		var startY;
+		var endX;
+		var endY;
+
+		/**
+		 * function retrieves the mouse position on a canvas,
+		 * takes scrolled view into account
+		 */
+		function getMousePosition(event){
+			var x = new Number();
+			var y = new Number();
+			var canvas = document.getElementById("mycanvas");
+
+			if (event.pageX != undefined && event.pageY != undefined) {
+				x = event.pageX;
+				y = event.pageY;
+			} else 
+			{
+				x = event.clientX + document.body.scrollLeft
+				        + document.documentElement.scrollLeft;
+				y = event.clientY + document.body.scrollTop
+				        + document.documentElement.scrollTop;
+			}
+
+			x -= canvas.offsetLeft;
+			y -= canvas.offsetTop;
+
+			return {x: x, y: y};
+		}
+
+		function handleMouseDown(e) {
+		    var mousePosition = getMousePosition(e);
+		    var mouseX = mousePosition.x;
+		    var mouseY = mousePosition.y;
+
+		    // Put your mousedown stuff here
+		    if (isDrawing) {
+		        isDrawing = false;
+
+				endX = mouseX;
+				endY = mouseY;
+				
+				var h = endY - startY + 'px';
+				var w = endX - startX + 'px';
+
+				var coords = {
+					start: {x: startX, y: startY},
+					end: {x: endX, y: endY},
+					size: {w: w, h: h}
+				};
+				console.log(JSON.stringify(coords));
+		        canvas.style.cursor = "default";
+
+		        $('#userSelection').css({top:startY, left:startX, height: h , width: w, position:'absolute', border: '2px solid #FDB514', background: 'rgba(253,181,20,0.5)'});
+
+		        var textToCopy = "";
+				var url = 'http://localhost:3000/resources/52fdf9c633480c593b000002/pages/1/text/box?x0='+startX+'&y0='+startY+'&x1='+endX+'&y1='+endY+'&access_token=' + getParameterByName('access_token');
+				$.getJSON( url, function(data){
+					textToCopy = data.text;
+				});
+
+
+		        //$('#popoverAnchor').css({top: startY, left: mouseX, position: 'absolute', 'z-index':5, height: h, width:'2px', border:'1px solid red'});
+		        $('#userSelection').popover({
+		        	html: true,
+		        	placement:'right', 
+		        	content:'<button id="copytextbutton" class="btn btn-primary btn-tiny">copy as text</button>'
+		        });
+		        $('#userSelection').popover('show');	
+
+				var client = new ZeroClipboard($('#copytextbutton'));
+
+				client.on("load", function(client){
+					console.log("clipboard loaded");
+					client.on('datarequested', function(client, args){
+						console.log("copy to clipboard request received");
+						console.log("text to copy = " + textToCopy);
+						client.setText(textToCopy);
+					});
+
+					client.on('complete', function(client, args){
+						console.log("copied to clipboard " + JSON.stringify(args));
+						$('#userSelection').css({top:0, left:0, height: 0, width: 0, position:'absolute', border: 'none'});
+						$('#userSelection').popover('hide');
+						$('#copyText').text('[ ' + textToCopy.substring(0,50) + '... ]');
+						$('#successAlert').show();
+					});
+				});
+		    } else {
+		        isDrawing = true;
+		        startX = mouseX;
+		        startY = mouseY;
+		        canvas.style.cursor = "crosshair";
+		    }
+		}
+		$("#mycanvas").mousedown(function (e) {
+		    handleMouseDown(e);
+		});
+ 	});
+	</script>
+  </body>
+</html>

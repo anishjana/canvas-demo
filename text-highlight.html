@@ -49,7 +49,7 @@
   <body>
   	<div id="canvas-wrap">
 		<div id="mycanvas" width="1700" height="2200">
-			<img id="pageimage" src="12.png" draggabale="false"/>
+			<img id="pageimage" src="" draggabale="false"/>
 		</div>
 		<div id="userSelection"></div>
 	</div>
@@ -58,12 +58,20 @@
 
  	$(document).ready(function(){
 
+ 		var filemap = {
+ 			"12.png": { "file_id": "530b21e66803faf33b8b4567", "page": 12},
+ 			"1-golden.png": {"file_id": "530c9db46803faa766ddf177", "page": 1}
+ 		}
+
 		function getParameterByName(name) {
 		    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
 		    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
 		        results = regex.exec(location.search);
 		    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 		}
+
+		var file = getParameterByName("file");
+		$('#pageimage').attr("src", file);
 
 		var makeUnselectable = function( $target ) {
 		    $target
@@ -82,7 +90,7 @@
 
 		var word_data = null;;
 
-		var url = 'http://depot/files/530b21e66803faf33b8b4567/pages/12/words.json?access_token=' + getParameterByName('access_token');
+		var url = 'http://depot/files/'+filemap[file]["file_id"]+'/pages/'+filemap[file]["page"]+'/words.json?access_token=' + getParameterByName('access_token');
 		$.getJSON( url, function(data){
 			//console.log(data.words);
 			word_data = data.words;

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+
+    <style>
+    	#userSelection {
+			position: absolute;
+			top:0px;
+			left:0px;
+			background: rgba(253,181,20,0.5);
+    	}
+
+		.ocr_word {
+			/*border: 1px solid red;*/
+			background: transparent;
+		}
+		.ocr_word_selected {
+			background-color: rgba(253,181,20,0.5) !important;			
+		}
+
+		.ocr_word:hover {
+			/*background-color: rgba(253,181,20,0.5);*/
+		}
+
+    	#canvas-wrap { position:relative; width:1700px; height:2200px }
+		#canvas-wrap #mycanvas { position:absolute; top:0; left:0; z-index:0; cursor:text; }
+
+		.unselectable {
+		    /* For Opera and <= IE9, we need to add unselectable="on" attribute onto each element */
+		    /* Check this site for more details: http://help.dottoro.com/lhwdpnva.php */
+		    -moz-user-select: none; /* These user-select properties are inheritable, used to prevent text selection */
+		    -webkit-user-select: none;
+		    -ms-user-select: none; /* From IE10 only */
+		    user-select: none; /* Not valid CSS yet, as of July 2012 */
+
+		    -webkit-user-drag: none; /* Prevents dragging of images/divs etc */
+		    user-drag: none;
+		}
+    </style>
+ </head>
+  <body>
+  	<div id="canvas-wrap">
+		<div id="mycanvas" width="1700" height="2200">
+			<img id="pageimage" src="12.png" draggabale="false"/>
+		</div>
+		<div id="userSelection"></div>
+	</div>
+ 	<script>
+
+
+ 	$(document).ready(function(){
+
+		function getParameterByName(name) {
+		    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+		    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+		        results = regex.exec(location.search);
+		    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+		}
+
+		var makeUnselectable = function( $target ) {
+		    $target
+		        .addClass( 'unselectable' ) // All these attributes are inheritable
+		        .attr( 'unselectable', 'on' ) // For IE9 - This property is not inherited, needs to be placed onto everything
+		        .attr( 'draggable', 'false' ) // For moz and webkit, although Firefox 16 ignores this when -moz-user-select: none; is set, it's like these properties are mutually exclusive, seems to be a bug.
+		        .on( 'dragstart', function() { return false; } );  // Needed since Firefox 16 seems to ingore the 'draggable' attribute we just applied above when '-moz-user-select: none' is applied to the CSS 
+
+		    $target // Apply non-inheritable properties to the child elements
+		        .find( '*' )
+		        .attr( 'draggable', 'false' )
+		        .attr( 'unselectable', 'on' ); 
+		};
+
+		makeUnselectable($('#pageimage'));
+
+		var word_data = null;;
+
+		var url = 'http://depot/files/530b21e66803faf33b8b4567/pages/12/words.json?access_token=' + getParameterByName('access_token');
+		$.getJSON( url, function(data){
+			//console.log(data.words);
+			word_data = data.words;
+
+			for(i=0; i<word_data.length; i++){
+				var word = word_data[i];
+				$('#mycanvas').append("<div id='ocr_word_"+i+"' class='ocr_word' data-text='"+word.d+"'></div>");
+				// console.log(word);
+				var x0 = word.l[0][0];
+				var y0 = word.l[0][1];
+
+				var width = word.l[1][0] - x0;
+				var height = word.l[1][1] - y0
+
+				$('#ocr_word_'+i).css({
+					position:'absolute',
+					border: '1px solid red',
+					top: y0,
+					left: x0,
+					width: width,
+					height: height
+				});			
+			}
+		});
+
+
+		function highlightSelectedWords(start, end){
+			console.log("Highlighting : " + start +" to " + end);
+			resetSelection();
+			for(i=start; i<(end+1); i++){
+				$('#ocr_word_' + i).addClass('ocr_word_selected');
+			};
+		};
+
+		function resetSelection(){
+			$('.ocr_word').removeClass('ocr_word_selected');
+		}
+
+		function getTarget(e) {
+			var targ;
+			if (!e) var e = window.event;
+			if (e.target) targ = e.target;
+			else if (e.srcElement) targ = e.srcElement;
+			if (targ.nodeType == 3) // defeat Safari bug
+				targ = targ.parentNode;
+
+			return targ;
+		};
+
+		var selecting = false;
+		var startWord = null;
+		var endWord   = null;
+
+		function handleMouseDown(e){
+			var target = $(getTarget(e));
+			resetSelection();
+			if(target.hasClass("ocr_word")){
+				selecting = true;
+				startWord = parseInt(target.attr('id').replace('ocr_word_', ''));
+			}
+		}
+
+		function handleMouseMove(e){
+			if(selecting){
+				var target = $(getTarget(e));
+				if(target.hasClass("ocr_word")){
+					endWord = parseInt(target.attr('id').replace('ocr_word_', ''));
+
+					if(startWord > endWord){
+						highlightSelectedWords(endWord, startWord);
+					} else{
+						highlightSelectedWords(startWord, endWord);										
+					}
+
+				}
+			}
+		}
+
+		function handleMouseUp(e){
+			if(selecting){
+				var target = $(getTarget(e));
+				if(target.hasClass("ocr_word")){
+					endWord = parseInt(target.attr('id').replace('ocr_word_', ''));
+					if(startWord > endWord){
+						highlightSelectedWords(endWord, startWord);
+					} else{
+						highlightSelectedWords(startWord, endWord);										
+					}
+				}
+
+				selecting = false;
+			}
+		}
+
+		$('#mycanvas').mousedown(function(e){
+			handleMouseDown(e);
+		}).mousemove(function(e){
+			handleMouseMove(e);
+		}).mouseup(function(e){
+			handleMouseUp(e);
+		});
+
+ 	});
+
+	</script>
+  </body>
+</html>

@@ -121,19 +121,23 @@
 				var p_idx = 'p_' + word.pi;
 				var l_idx = 'l_' + word.li;
 
+				var nextWord = word;
+				if(i<word_data.length-1){
+					nextWord = word_data[i+1];
+				}
+
 				$('#mycanvas').append("<div id='ocr_word_"+i+"' class='ocr_word' data-text='"+word.d+"' data-pi='"+word.pi+"' data-li='"+word.li+"'></div>");
 				// console.log(word);
-				// var x0 = word.l[0][0];
-				// var y0 = word.l[0][1];
-
-				// var width = word.l[1][0] - x0;
-				// var height = word.l[1][1] - y0
 
 				var x0 = word.l[0][0];
 				var y0 = (useLineExtents == true) ? lineExtents[p_idx][l_idx].minY : word.l[0][1];
 
-				var width = word.l[1][0] - x0;
+				var width = (nextWord.l[0][0] > word.l[0][0]) ? nextWord.l[0][0] - x0 : word.l[1][0] - x0;
 				var height = (useLineExtents == true) ? lineExtents[p_idx][l_idx].maxY - y0 : word.l[1][1] - y0;
+
+				// if(word.d == 'another'){
+				// 	console.log(width + "," + height );
+				// }
 
 				var styling = {
 					position:'absolute',

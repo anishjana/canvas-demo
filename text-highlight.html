@@ -11,6 +11,12 @@
     <script src="js/bootstrap.min.js"></script>
 
     <style>
+
+    	#gutterSelection {
+    		position: absolute;
+			background-color: rgba(197,25,125,0.5) !important;
+    	}
+
 		.ocr_word {
 			/*border: 1px solid red;*/
 			background: transparent;
@@ -44,7 +50,7 @@
 		<div id="mycanvas" width="1700" height="2200">
 			<img id="pageimage" src="" draggabale="false"/>
 		</div>
-		<div id="userSelection"></div>
+		<div id="gutterSelection"></div>
 	</div>
  	<script>
 
@@ -157,15 +163,32 @@
 
 
 		function highlightSelectedWords(start, end){
-			console.log("Highlighting : " + start +" to " + end);
+			//console.log("Highlighting : " + start +" to " + end);
 			resetSelection();
+
+			var gutterStart = $('#ocr_word_' + start).position().top;
+			var gutterEnd = $('#ocr_word_' + end).position().top + $('#ocr_word_' + end).height();
+
 			for(i=start; i<(end+1); i++){
 				$('#ocr_word_' + i).addClass('ocr_word_selected');
 			};
+
+			$('#gutterSelection').css({
+				top: gutterStart,
+				left: 0,
+				height: gutterEnd - gutterStart,
+				width: 20
+			})
 		};
 
 		function resetSelection(){
 			$('.ocr_word').removeClass('ocr_word_selected');
+			$('#gutterSelection').css({
+				top: 0,
+				left:0,
+				height:0,
+				width:0
+			})
 		}
 
 		function getTarget(e) {

@@ -11,13 +11,6 @@
     <script src="js/bootstrap.min.js"></script>
 
     <style>
-    	#userSelection {
-			position: absolute;
-			top:0px;
-			left:0px;
-			background: rgba(253,181,20,0.5);
-    	}
-
 		.ocr_word {
 			/*border: 1px solid red;*/
 			background: transparent;
@@ -71,6 +64,10 @@
 		}
 
 		var file = getParameterByName("file");
+		var useLineExtents = getParameterByName("hext") == 'true' ? true : false;
+		var useBorder = getParameterByName("border") == 'true' ? true : false;
+		console.log(useLineExtents);
+
 		$('#pageimage').attr("src", file);
 
 		var makeUnselectable = function( $target ) {
@@ -95,24 +92,62 @@
 			//console.log(data.words);
 			word_data = data.words;
 
+
+
+			var lineExtents = {};
 			for(i=0; i<word_data.length; i++){
 				var word = word_data[i];
-				$('#mycanvas').append("<div id='ocr_word_"+i+"' class='ocr_word' data-text='"+word.d+"'></div>");
+				var p_idx = 'p_' + word.pi;
+				var l_idx = 'l_' + word.li;
+				//console.log("p: " + p_idx + ", l:" + l_idx);
+				if(!lineExtents.hasOwnProperty(p_idx)){
+					lineExtents[p_idx] = {};
+				}
+
+				if(!lineExtents[p_idx].hasOwnProperty(l_idx)){
+					lineExtents[p_idx][l_idx] = {minY:word.l[0][1], maxY:word.l[1][1]};
+				}
+
+				if( word.l[0][1] < lineExtents[p_idx][l_idx].minY){
+					lineExtents[p_idx][l_idx].minY = word.l[0][1];
+				}
+				if( word.l[1][1] > lineExtents[p_idx][l_idx].maxY){
+					lineExtents[p_idx][l_idx].maxY = word.l[1][1];
+				}
+			}
+
+			for(i=0; i<word_data.length; i++){
+				var word = word_data[i];
+				var p_idx = 'p_' + word.pi;
+				var l_idx = 'l_' + word.li;
+
+				$('#mycanvas').append("<div id='ocr_word_"+i+"' class='ocr_word' data-text='"+word.d+"' data-pi='"+word.pi+"' data-li='"+word.li+"'></div>");
 				// console.log(word);
+				// var x0 = word.l[0][0];
+				// var y0 = word.l[0][1];
+
+				// var width = word.l[1][0] - x0;
+				// var height = word.l[1][1] - y0
+
 				var x0 = word.l[0][0];
-				var y0 = word.l[0][1];
+				var y0 = (useLineExtents == true) ? lineExtents[p_idx][l_idx].minY : word.l[0][1];
 
 				var width = word.l[1][0] - x0;
-				var height = word.l[1][1] - y0
+				var height = (useLineExtents == true) ? lineExtents[p_idx][l_idx].maxY - y0 : word.l[1][1] - y0;
 
-				$('#ocr_word_'+i).css({
+				var styling = {
 					position:'absolute',
-					border: '1px solid red',
 					top: y0,
 					left: x0,
 					width: width,
 					height: height
-				});			
+				};
+
+				if(useBorder == true){
+					styling['border'] = '1px solid red';
+				}
+
+				$('#ocr_word_'+i).css(styling);			
 			}
 		});
 
@@ -150,6 +185,8 @@
 			if(target.hasClass("ocr_word")){
 				selecting = true;
 				startWord = parseInt(target.attr('id').replace('ocr_word_', ''));
+				endWord   = parseInt(target.attr('id').replace('ocr_word_', ''));
+				highlightSelectedWords(startWord, endWord);
 			}
 		}
 
@@ -182,6 +219,8 @@
 				}
 
 				selecting = false;
+				startWord = null;
+				endWord   = null;
 			}
 		}
 

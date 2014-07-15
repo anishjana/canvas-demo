@@ -14,7 +14,7 @@
 
     	#gutterSelection {
     		position: absolute;
-			background-color: rgba(197,25,125,0.5) !important;
+			background-color: rgba(255,180,0,1) !important;
     	}
 
 		.ocr_word {
@@ -22,7 +22,7 @@
 			background: transparent;
 		}
 		.ocr_word_selected {
-			background-color: rgba(253,181,20,0.5) !important;			
+			background-color: rgba(253,181,20,0.25) !important;			
 		}
 
 		.ocr_word:hover {
@@ -58,8 +58,8 @@
  	$(document).ready(function(){
 
  		var filemap = {
- 			"12.png": { "file_id": "530b21e66803faf33b8b4567", "page": 12},
- 			"1-golden.png": {"file_id": "530c9db46803faa766ddf177", "page": 1}
+ 			"12.png": { "file_id": "53c4d42e6803facd078b456f", "page": 12},
+ 			"1-golden.png": {"file_id": "53ac25a66803fa7fe71ddc9a", "page": 1}
  		}
 
 		function getParameterByName(name) {
@@ -98,8 +98,10 @@
 			//console.log(data.words);
 			word_data = data.words;
 
-
-
+			// Line extents is a structure that contains a key for each paragraph
+			// and withing that for each line in the paragraph stores the highest and lowest
+			// y coordinates. In other words ... for each paragraph find the hieght of the highest word
+			// this allows us to create a normalized selection.
 			var lineExtents = {};
 			for(i=0; i<word_data.length; i++){
 				var word = word_data[i];
@@ -122,6 +124,12 @@
 				}
 			}
 
+			console.log(lineExtents);
+
+			// we need to change the size of each word, so that its buttresses up against the
+			// start of the next word, this gives us non breaking selection. Otherwsie when we select
+			// we would only be highlighting the word itself and not the space between the words on a 
+			//
 			for(i=0; i<word_data.length; i++){
 				var word = word_data[i];
 				var p_idx = 'p_' + word.pi;

@@ -17,12 +17,14 @@
 			background-color: rgba(255,180,0,1) !important;
     	}
 
+        /* AJB The transparent background image via data URL solves the problem of z-index in stacking contexts of positioned elements */
 		.ocr_word {
 			/*border: 1px solid red;*/
-			background: transparent;
+            z-index: 10000;
+            background: transparent 0 0 repeat scroll url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBR‌​AA7");
 		}
 		.ocr_word_selected {
-			background-color: rgba(253,181,20,0.25) !important;			
+			background-color: rgba(253,181,20,0.25) !important;
 		}
 
 		.ocr_word:hover {
@@ -46,21 +48,31 @@
     </style>
  </head>
   <body>
-  	<div id="canvas-wrap">
-		<div id="mycanvas" width="1700" height="2200">
-			<img id="pageimage" src="" draggabale="false"/>
+  	<div id="canvas-wrap" style="position:relative; z-index: 1000">
+		<div id="mycanvas" width="1700" height="2200" style="position:relative; z-index: 1000;">
+            <!-- AJB fixed 'draggable' rather than 'draggabale' typo, also added z-index -->
+			<img id="pageimage" src="" draggable="false" style="position: relative; z-index: 1"/>
+
+            <!-- The divs for the words go at this level here... -->
 		</div>
 		<div id="gutterSelection"></div>
 	</div>
+
+    <div id="debugArea" style="border: dotted red 1px; position:absolute;top:20px;left:1750px;width:500px; height: 700px;padding:5px;overflow:auto;"></div>
+
  	<script>
 
 
  	$(document).ready(function(){
 
- 		var filemap = {
- 			"12.png": { "file_id": "53c4d42e6803facd078b456f", "page": 12},
- 			"1-golden.png": {"file_id": "53ac25a66803fa7fe71ddc9a", "page": 1}
- 		}
+// 		var filemap = {
+// 			"12.png": { "file_id": "53c4d42e6803facd078b456f", "page": 12},
+// 			"1-golden.png": {"file_id": "53ac25a66803fa7fe71ddc9a", "page": 1}
+// 		}
+        var filemap = {
+            "12.png": { "file_id": "53c4fa6cd4f0951045b7acda", "page": 12},
+            "1-golden.png": {"file_id": "53c4fa6cd4f0951045b7acda", "page": 1}
+        }
 
 		function getParameterByName(name) {
 		    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
@@ -72,7 +84,7 @@
 		var file = getParameterByName("file");
 		var useLineExtents = getParameterByName("hext") == 'true' ? true : false;
 		var useBorder = getParameterByName("border") == 'true' ? true : false;
-		console.log(useLineExtents);
+		//console.log(useLineExtents);
 
 		$('#pageimage').attr("src", file);
 
@@ -93,10 +105,15 @@
 
 		var word_data = null;;
 
-		var url = 'http://depot/files/'+filemap[file]["file_id"]+'/pages/'+filemap[file]["page"]+'/words.json?access_token=' + getParameterByName('access_token');
+		var url = 'http://depot/files/'+filemap[file]["file_id"]+'/pages/'+filemap[file]["page"]+'/words.json?access_token=' + getParameterByName('access_token')+'&callback=';
+
+        $('#debugArea').append('<p>Calling: '+url+'</p>');
+
 		$.getJSON( url, function(data){
 			//console.log(data.words);
 			word_data = data.words;
+
+            $('#debugArea').append('<p>Words = '+word_data.length+'</p>');
 
 			// Line extents is a structure that contains a key for each paragraph
 			// and withing that for each line in the paragraph stores the highest and lowest
@@ -124,7 +141,9 @@
 				}
 			}
 
-			console.log(lineExtents);
+            $('#debugArea').append('<p>After line extent stuff</p>');
+
+			//console.log(lineExtents);
 
 			// we need to change the size of each word, so that its buttresses up against the
 			// start of the next word, this gives us non breaking selection. Otherwsie when we select
@@ -154,7 +173,7 @@
 				// }
 
 				var styling = {
-					position:'absolute',
+					position: 'absolute',
 					top: y0,
 					left: x0,
 					width: width,
@@ -167,12 +186,21 @@
 
 				$('#ocr_word_'+i).css(styling);			
 			}
+
+            $('#debugArea').append('<p>After styling words</p>');
+
+            //var imageIndex = $('pageimage').attr('z-index');
+            //$('#debugArea').append(foo);
+
 		});
 
 
 		function highlightSelectedWords(start, end){
 			//console.log("Highlighting : " + start +" to " + end);
 			resetSelection();
+
+            $('#debugArea').append('<p>Highlight selected words: '+start+' - '+end+'</p>');
+
 
 			var gutterStart = $('#ocr_word_' + start).position().top;
 			var gutterEnd = $('#ocr_word_' + end).position().top + $('#ocr_word_' + end).height();
@@ -207,6 +235,8 @@
 			if (targ.nodeType == 3) // defeat Safari bug
 				targ = targ.parentNode;
 
+
+
 			return targ;
 		};
 
@@ -215,20 +245,35 @@
 		var endWord   = null;
 
 		function handleMouseDown(e){
+            $('#debugArea').append('<p>Mousedown</p>');
 			var target = $(getTarget(e));
+
+            $('#debugArea').append('<p>Tag: '+target.prop('tagName')+'</p>');
+
 			resetSelection();
+            $('#debugArea').append('<p>Mousedown - after resetSelection()</p>');
+
 			if(target.hasClass("ocr_word")){
-				selecting = true;
+                $('#debugArea').append('<p>Mousedown - hasClass ocr_word TRUE</p>');
+
+                selecting = true;
 				startWord = parseInt(target.attr('id').replace('ocr_word_', ''));
 				endWord   = parseInt(target.attr('id').replace('ocr_word_', ''));
 				highlightSelectedWords(startWord, endWord);
 			}
+            else
+            {
+                $('#debugArea').append('<p>Mousedown - hasClass ocr_word FALSE</p>');
+            }
 		}
 
 		function handleMouseMove(e){
 			if(selecting){
 				var target = $(getTarget(e));
 				if(target.hasClass("ocr_word")){
+
+                    //$('#debugArea').append('<p>Mousemove: '+target.attr('id')+'</p>');
+
 					endWord = parseInt(target.attr('id').replace('ocr_word_', ''));
 
 					if(startWord > endWord){
@@ -242,6 +287,8 @@
 		}
 
 		function handleMouseUp(e){
+            //$('#debugArea').append('<p>Mouseup</p>');
+
 			if(selecting){
 				var target = $(getTarget(e));
 				if(target.hasClass("ocr_word")){
